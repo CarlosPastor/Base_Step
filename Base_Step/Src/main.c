@@ -59,6 +59,52 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN 0 */
 
+uint8_t buff_m1[4];
+uint8_t buff_m2[4];
+uint8_t tx_buff[2];
+uint8_t tx_nop[] = {0, 0};
+
+//change speed call
+
+void change_speed_timed(int speed_8bit, int time_ms)
+{
+	  //start motor script
+	  //Time greater to 10ms
+	  //command 1
+	  buff_m1[0] = 0b01010000;
+	  //data (speed)
+	  buff_m1[1] = 0;
+	  buff_m1[2] = speed_8bit;
+	  buff_m1[3] = 0;
+
+	  //command 2
+	  buff_m2[0] = 0b01010001;
+	  //data (speed)
+	  buff_m2[1] = 0;
+	  buff_m2[2] = speed_8bit;
+	  buff_m2[3] = 0;
+
+	  //The trasnmision od multybyte commands is complex as tima shoud be left for the logic inside
+	  //the driver to decode each part of the mesage. To solve this we will do a blank write between commands
+	  // but its not a good solution, a real time implementation is needed to provide robustness to the software.
+	  //A well timed software loop should be enought.
+
+	  for(int i = 0; i < 4; i++)
+	  {
+		  //put the data in the out buffer
+		  tx_buff[0] = buff_m1[i];
+		  tx_buff[1] = buff_m2[i];
+		  //stat write
+		  HAL_GPIO_WritePin(GPIOA, SPI_CS1_Pin, GPIO_PIN_RESET);
+		  HAL_SPI_Transmit(&hspi1, tx_buff, 2, 1000);
+		  HAL_GPIO_WritePin(GPIOA, SPI_CS1_Pin, GPIO_PIN_SET);
+		  //wait write
+		  HAL_Delay(5);
+	  }
+
+	  HAL_Delay(time_ms);
+}
+
 /* USER CODE END 0 */
 
 int main(void)
@@ -83,11 +129,6 @@ int main(void)
   MX_TIM7_Init();
 
   /* USER CODE BEGIN 2 */
-
-  uint8_t buff_m1[4];
-  uint8_t buff_m2[4];
-  uint8_t tx_buff[2];
-  uint8_t tx_nop[] = {0, 0};
 
   //HAL_TIM_Base_Start_IT(&htim6);
 
@@ -140,41 +181,13 @@ int main(void)
 
   HAL_Delay(1000);
 
-  //start motor script
-  //command 1
-  buff_m1[0] = 0b01010000;
-  //data (speed)
-  buff_m1[1] = 0;
-  buff_m1[2] = 100;
-  buff_m1[3] = 0;
-
-  //command 2
-  buff_m2[0] = 0b01010001;
-  //data (speed)
-  buff_m2[1] = 0;
-  buff_m2[2] = 100;
-  buff_m2[3] = 0;
-
-  //The trasnmision od multybyte commands is complex as tima shoud be left for the logic inside
-  //the driver to decode each part of the mesage. To solve this we will do a blank write between commands
-  // but its not a good solution, a real time implementation is needed to provide robustness to the software.
-  //A well timed software loop should be enought.
-
-  for(int i = 0; i < 4; i++)
-  {
-	  //put the data in the out buffer
-	  tx_buff[0] = buff_m1[i];
-	  tx_buff[1] = buff_m2[i];
-	  //stat write
-	  HAL_GPIO_WritePin(GPIOA, SPI_CS1_Pin, GPIO_PIN_RESET);
-	  HAL_SPI_Transmit(&hspi1, tx_buff, 2, 1000);
-	  HAL_GPIO_WritePin(GPIOA, SPI_CS1_Pin, GPIO_PIN_SET);
-	  //wait write
-	  HAL_SPI_Transmit(&hspi1, tx_nop, 2, 1000);
-  }
-
-  //Delay wait action
-  HAL_Delay(5000);
+  change_speed_timed(50, 2000);
+  change_speed_timed(120, 2000);
+  change_speed_timed(10, 2000);
+  change_speed_timed(100, 2000);
+  change_speed_timed(25, 2000);
+  change_speed_timed(86, 2000);
+  change_speed_timed(30, 2000);
 
   //REPEAT TO STOP
   //start motor script
@@ -200,7 +213,7 @@ int main(void)
 	  //stat write
 	  HAL_GPIO_WritePin(GPIOA, SPI_CS1_Pin, GPIO_PIN_RESET);
 	  HAL_SPI_Transmit(&hspi1, tx_buff, 2, 5000);
-	  //HAL_GPIO_WritePin(GPIOA, SPI_CS1_Pin, GPIO_PIN_SET);
+	  HAL_GPIO_WritePin(GPIOA, SPI_CS1_Pin, GPIO_PIN_SET);
 	  //wait write
 	  HAL_SPI_Transmit(&hspi1, tx_nop, 2, 5000);
   }
